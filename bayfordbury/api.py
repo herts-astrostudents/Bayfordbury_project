@@ -1,6 +1,6 @@
 import requests
+import json
 from .utilities import Filter
-from astropy.table import Table
 
 
 class ArchiveApi(object):
@@ -49,6 +49,8 @@ class ArchiveApi(object):
 
         # construct a query parameters dictionary
         params = { # required parameters and those with a default value
+            "key"    : self.api_key,
+            "id"     : self.observer_id,
             "ra"     : ra,
             "dec"    : dec,
             "dist"   : radius,
@@ -77,24 +79,19 @@ class ArchiveApi(object):
         return self._unpack_search_response(response.content)
     
 
-    def _unpack_search_response(self, json):
+    def _unpack_search_response(self, response):
         column_names = ["id", "ra", "dec", "dist", "exp", "tel", "bin", "jd", "filter"]
-        print(json)
+        response_dictionary = json.loads(response)
         
         # TODO : error here, test it
-        if "Exception" in json and json["Exception"] == True:
-            if "no_matching_images" in json["ExceptionReason"]:
-                return Table(names=column_names)
-            if "verification_failed" in json["ExceptionReason"]:
-                return PermissionError("Verification failed for the <observer_id> and <api_key> you provided.")
+        if "Exception" in response_dictionary and response_dictionary["Exception"] == True:
+            if "no_matching_images" in response_dictionary["ExceptionReason"]:
+                return []
+            if "verification_failed" in response_dictionary["ExceptionReason"]:
+                raise PermissionError("Verification failed for the <observer_id> and <api_key> you provided.")
             else:
                 raise NotImplementedError("Some error has occurred during your request, but was not handled here ¯\_(ツ)_/¯ .")
 
-        images_data = json["images"]
+        images_data = response_dictionary["images"]
 
-        t = Table(names=column_names)
-        for k, image in images_data.items():
-            row = [image[x] for x in column_names]
-            t.add_row(row)
-
-        return t
+        return [value for key, value in images_data.items()]
