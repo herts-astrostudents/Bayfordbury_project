@@ -17,7 +17,7 @@ class Filter(object):
     filters_list = [
             "clear", 
             "i", "r", "v", "b",
-            "halpha", "sii", "oiii"
+            "halpha", "sii", "oiii", "465nm"
         ]
 
     def __init__(self, name):            
@@ -60,5 +60,6 @@ class Filter(object):
         name = name.replace("blue", "b")
 
         name = name.replace("-", "")
+        name = name.replace(" ", "")
 
         return name
