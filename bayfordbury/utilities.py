@@ -25,20 +25,21 @@ class Filter(object):
 
 
     def _from_string(self, name):
-        if not self.is_allowed(name):
+        if not Filter.is_allowed(name):
             raise ValueError("Unknown filter name <{}>. Use one of these: {}".format(name, self.filters_list))
         
         return self._normalise_filter_name(name)
     
-
-    def is_allowed(self, name):
-        if self._normalise_filter_name(name) in Filter.filters_list:
+    @staticmethod
+    def is_allowed(name):
+        if Filter._normalise_filter_name(name) in Filter.filters_list:
             return True
 
         return False
 
 
-    def _normalise_filter_name(self, name):
+    @staticmethod
+    def _normalise_filter_name(name):
         """
         Attempts to fix inconsistent filter names, e.g. red/Red/R -> r
 
@@ -47,9 +48,17 @@ class Filter(object):
         Returns <string> : normalised filter name
         """
         name = name.strip().lower()
+
+        name = name.replace("infrared", "i")
+        name = name.replace("ir", "i")
+
         name = name.replace("red", "r")
+
         name = name.replace("green", "v")
+        name = name.replace("g", "v")
+
         name = name.replace("blue", "b")
+
         name = name.replace("-", "")
 
         return name
