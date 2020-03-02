@@ -7,7 +7,7 @@ setup(
     author="Centre for Astrophysics Research, University of Hertfordshire",
     author_email="m.lisogorskyi@herts.ac.uk",
 
-    packages=["archive", "utilities"],
+    packages=["bayfordbury"],
     install_requires=["astropy"],
     
     version="0.1",

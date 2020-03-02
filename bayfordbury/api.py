@@ -1,5 +1,5 @@
 import requests
-from utilities import Filter
+from .utilities import Filter
 from astropy.table import Table
 
 

@@ -14,7 +14,35 @@ Useful links:
 
 102 _(basics and some more details)_: [Structuring your project](https://docs.python-guide.org/writing/structure/)
 
-Please read them above first.
+Please read the above first.
+
+
+# Requirements
+
+- Python 2.7 or higher
+- astropy
+
+# Installation
+
+## from this repository
+
+```sh
+git clone https://github.com/herts-astrostudents/Bayfordbury_project.git
+cd Bayfordbury_project
+python setup.py install
+```
+
+or
+
+```sh
+pip install git+https://github.com/herts-astrostudents/Bayfordbury_project.git -U
+```
+
+# Uninstall
+
+```sh
+pip uninstall bayfordbury
+```
 
 
 ## Files and Folders
