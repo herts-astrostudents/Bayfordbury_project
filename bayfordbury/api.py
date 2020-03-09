@@ -1,5 +1,8 @@
 import requests
+import tempfile
 import json
+from astropy.io import fits
+
 from .utilities import Filter
 
 
@@ -72,26 +75,82 @@ class ArchiveApi(object):
         
         # send the request
         response = requests.get(self._search_url, params)
-
-        if not response.ok:  # something went wrong
-            raise ConnectionError("Server responded with {} {}. Please check your request parameters and/ot refer to the documentation: https://observatory.herts.ac.uk/wiki/API".format(response.status_code, response.reason))
+        self._handle_bad_response(response)
         
         return self._unpack_search_response(response.content)
-    
+
+
+    def download(self, image_id, saveto=None):
+        """
+        Download an image from Bayfordbury Archive.
+
+        image_id, int : database ID in the archive.
+
+        saveto, str : path to save the .fits file to. If None, creates a temporary file (in /tmp if you're using Linux)
+
+        Returns an Astropy FITS image.
+        """
+        assert isinstance(image_id, int), "image_id must be an integer number."
+
+        # construct a query parameters dictionary
+        params = { # required parameters and those with a default value
+            "key"    : self.api_key,
+            "id"     : self.observer_id,
+            "dbid"   : image_id
+        }
+
+        # send the request
+        response = requests.get(self._download_url, params, stream=True)
+        self._handle_bad_response(response)
+
+        # create the file handle
+        file_handle = tempfile.NamedTemporaryFile(mode="wb") if saveto is None else open(saveto, "wb")
+        # write the bytes to the new file
+        with file_handle as handle:
+            for block in response.iter_content(1024):
+                handle.write(block)
+            file_path = file_handle.name if saveto is None else saveto
+            file_instance = fits.open(file_path, ignore_missing_end=True, cache=False)
+
+        return file_instance
+        
+
+    def _handle_bad_response(self, response):
+        """
+        Raises:
+            HTTPStatus errors if any.
+            PermissionError if credentials are wrong.
+            FileNotFoundError if image ID is not in the Bayfordbury archive.
+        """
+        response.raise_for_status()
+        # wrap this in try/catch in case the response is not actual JSON (could be file data, for instance)
+        try:
+            response_dictionary = json.loads(response.content)
+        except:
+            return
+
+        if "Exception" in response_dictionary and response_dictionary["Exception"] == True:
+            if "verification_failed" in response_dictionary["ExceptionReason"]:
+                raise PermissionError("Verification failed for the <observer_id> and <api_key> you provided.")
+            elif "image_id_not_found" in response_dictionary["ExceptionReason"]:
+                raise FileNotFoundError("File with a supplie ID not found in Bayfordbury archive.")
+
 
     def _unpack_search_response(self, response):
+        """
+        Converts json returned by the server's 'search' API to a list of dictionaries.
+
+        response, byte array : server response
+
+        Returns a list of images found.
+        """
         column_names = ["id", "ra", "dec", "dist", "exp", "tel", "bin", "jd", "filter"]
         response_dictionary = json.loads(response)
         
-        # TODO : error here, test it
         if "Exception" in response_dictionary and response_dictionary["Exception"] == True:
             if "no_matching_images" in response_dictionary["ExceptionReason"]:
                 return []
-            if "verification_failed" in response_dictionary["ExceptionReason"]:
-                raise PermissionError("Verification failed for the <observer_id> and <api_key> you provided.")
             else:
-                raise NotImplementedError("Some error has occurred during your request, but was not handled here ¯\_(ツ)_/¯ .")
-
-        images_data = response_dictionary["images"]
-
-        return [value for key, value in images_data.items()]
+                raise NotImplementedError("Server returned an error <{}>, but it was not handled here ¯\_(ツ)_/¯ .".format(response_dictionary["ExceptionReason"]))
+    
+        return [value for key, value in response_dictionary["images"].items()]
