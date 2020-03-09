@@ -1,3 +1,9 @@
+# FITS files
+*.fits
+*.FITS
+*.fit
+*.FIT
+
 # credentials files
 credentials.py
 */credentials.py
